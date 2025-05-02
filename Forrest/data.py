@@ -1,0 +1,53 @@
+import hashlib
+import os
+
+GIT_DIR = '.Forrest'
+
+def init():
+    os.makedirs(GIT_DIR)
+    os.makedirs(f'{GIT_DIR}/objects')
+    os.makedirs(f'{GIT_DIR}/pickle')
+    os.makedirs(f'{GIT_DIR}/commits')
+
+def update_ref(ref, oid):
+    with open(f'{GIT_DIR}/{ref}', 'w') as f:
+        f.write(oid)
+
+def get_ref(ref):
+    if os.path.isfile(f'{GIT_DIR}/{ref}'):
+        with open(f'{GIT_DIR}/{ref}') as f:
+            return f.read().strip()
+
+def hash_object(data, type_='blob'):
+    obj = type_.encode() + b'\x00' + data
+    oid = hashlib.sha1(obj).hexdigest()
+    with open(f'{GIT_DIR}/objects/{oid}', 'wb') as out:
+        out.write(obj)
+    return oid
+
+def get_object(oid, expected='blob'):
+    with open(f'{GIT_DIR}/objects/{oid}', 'rb') as f:
+        obj = f.read()
+    
+    type_,_, content = obj.partition(b'\x00')
+    type_ = type_.decode()
+    if expected is not None:
+        assert type_ == expected, f'Expected {expected}, got {type_}'
+    return content
+
+def write_commit_objects(data, type_='commit'):
+    obj = type_.encode() + b'\x00' + data
+    oid = hashlib.sha1(obj).hexdigest()
+    with open(f'{GIT_DIR}/commits/{oid}', 'wb') as out:
+        out.write(obj)
+    return oid
+
+def get_commit_objects(oid, expected='commit'):
+    with open(f'{GIT_DIR}/commits/{oid}', 'rb') as f:
+        obj = f.read()
+    
+    type_,_, content = obj.partition(b'\x00')
+    type_ = type_.decode()
+    if expected is not None:
+        assert type_ == expected, f'Expected {expected}, got {type_}'
+    return content    
